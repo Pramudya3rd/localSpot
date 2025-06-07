@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
+use Illuminate\Support\Str; // Tetap gunakan Str jika masih perlu untuk hal lain, tapi tidak untuk OTP
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ResetPasswordOTP;
@@ -68,16 +68,25 @@ class AuthController extends Controller
         }
 
         $user = User::where('email', $request->email)->first();
-        $token = Str::random(6); // Generate 6 digit OTP
+
+        // --- Perubahan untuk OTP Angka Saja ---
+        // Menghasilkan OTP 6 digit angka
+        $otp = random_int(100000, 999999); // Menghasilkan angka antara 100000 dan 999999
+        $otp = (string) $otp; // Pastikan formatnya string
+        // Jika Anda ingin lebih fleksibel dengan panjang, bisa juga:
+        // $length = 6;
+        // $otp = str_pad(random_int(0, pow(10, $length) - 1), $length, '0', STR_PAD_LEFT);
+        // --- Akhir Perubahan ---
+
         $expiresAt = Carbon::now()->addMinutes(10); // OTP berlaku 10 menit
 
         PasswordResetToken::updateOrCreate(
             ['user_id' => $user->id],
-            ['token' => $token, 'expires_at' => $expiresAt]
+            ['token' => $otp, 'expires_at' => $expiresAt] // Menggunakan $otp yang baru
         );
 
         // Kirim email OTP
-        Mail::to($user->email)->send(new ResetPasswordOTP($token));
+        Mail::to($user->email)->send(new ResetPasswordOTP($otp)); // Mengirim $otp yang baru
 
         return response()->json(['message' => 'OTP sent to your email.'], 200);
     }
@@ -86,7 +95,7 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',
-            'otp' => 'required|string|size:6',
+            'otp' => 'required|string|size:6', // Pastikan validasi ukuran sesuai (misal: size:6 untuk 6 digit)
             'new_password' => 'required|string|min:8|confirmed',
         ]);
 

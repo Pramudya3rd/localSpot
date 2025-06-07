@@ -26,6 +26,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'password' => 'hashed', // <--- TAMBAHKAN BARIS INI
     ];
 
     public function places()
