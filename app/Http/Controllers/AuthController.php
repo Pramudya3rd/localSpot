@@ -19,7 +19,7 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => 'required|string|min:8|confirmed', // 'confirmed' berarti harus ada 'password_confirmation' field
             'username' => 'nullable|string|max:255',
         ]);
 
@@ -33,8 +33,25 @@ class AuthController extends Controller
             'username' => $request->username,
         ]);
 
-        return response()->json(['message' => 'User registered successfully!'], 201);
+        // --- BAGIAN YANG DITAMBAHKAN/DIUBAH UNTUK AUTO-LOGIN ---
+
+        // 1. Lakukan login pengguna yang baru saja didaftarkan
+        // Ini memastikan pengguna tersebut 'terotentikasi' di sesi backend
+        // (opsional, tergantung pada bagaimana session/state dikelola di Laravel Sanctum)
+        Auth::login($user);
+
+        // 2. Buat token otentikasi (seperti di fungsi login Anda)
+        $token = $user->createToken('authToken')->plainTextToken;
+
+        // 3. Kembalikan token dan data pengguna dalam respons sukses
+        return response()->json([
+            'message' => 'User registered successfully!',
+            'token' => $token,
+            'user' => $user // Mengembalikan objek user juga berguna untuk frontend
+        ], 201); // Status 201 Created untuk pendaftaran baru
+        // --- AKHIR BAGIAN YANG DITAMBAHKAN/DIUBAH ---
     }
+
 
     public function login(Request $request)
     {
